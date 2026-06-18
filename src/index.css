@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .card-base {
+    @apply bg-industrial-card border border-industrial-border rounded-lg shadow-card;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:bg-industrial-hover hover:shadow-glow-hover hover:border-primary-500/30;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-md text-sm font-medium transition-all duration-200 hover:shadow-glow;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-industrial-surface hover:bg-industrial-hover text-industrial-text border border-industrial-border rounded-md text-sm font-medium transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply px-3 py-1.5 text-industrial-subtle hover:text-industrial-text hover:bg-industrial-hover rounded-md text-sm transition-all duration-200;
+  }
+
+  .input-base {
+    @apply w-full px-3 py-2 bg-industrial-surface border border-industrial-border rounded-md text-industrial-text placeholder-industrial-muted focus:outline-none focus:border-primary-500/60 focus:ring-1 focus:ring-primary-500/30 transition-all duration-200 text-sm;
+  }
+
+  .label-base {
+    @apply block text-xs font-medium text-industrial-subtle mb-1.5 uppercase tracking-wide;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #1e2f4a transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #1e2f4a;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #2a4066;
+  }
+}
+
+.grid-bg {
+  background-image: linear-gradient(rgba(30, 47, 74, 0.25) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 47, 74, 0.25) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
