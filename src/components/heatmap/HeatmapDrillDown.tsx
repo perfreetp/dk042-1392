@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { HeatmapCell, FaultRecord, KnowledgeCase } from "@/types";
-import { X, Plane, Clock, Timer, Wrench, FileText, AlertTriangle, ArrowRight } from "lucide-react";
+import { X, Plane, Clock, Timer, Wrench, FileText, AlertTriangle, ArrowRight, ChevronRight } from "lucide-react";
 import { formatDateTime, formatHours, cn } from "@/utils/helpers";
 import { EmptyState } from "@/components/common/EmptyState";
+import { CaseDetailDrawer } from "@/components/common/CaseDetailDrawer";
 
 interface HeatmapDrillDownProps {
   cell: HeatmapCell;
@@ -12,11 +13,19 @@ interface HeatmapDrillDownProps {
 }
 
 export function HeatmapDrillDown({ cell, records, cases, onClose }: HeatmapDrillDownProps) {
+  const [caseDrawerOpen, setCaseDrawerOpen] = useState(false);
+  const [selectedCase, setSelectedCase] = useState<KnowledgeCase | null>(null);
+
   const caseMap = useMemo(() => {
     const map = new Map<string, KnowledgeCase>();
     for (const c of cases) map.set(c.id, c);
     return map;
   }, [cases]);
+
+  const handleOpenCase = (c: KnowledgeCase) => {
+    setSelectedCase(c);
+    setCaseDrawerOpen(true);
+  };
 
   const avgDownTime = useMemo(() => {
     if (records.length === 0) return "0";
@@ -152,13 +161,16 @@ export function HeatmapDrillDown({ cell, records, cases, onClose }: HeatmapDrill
                     </div>
 
                     {linkedCase && (
-                      <div className="flex items-start gap-2 pl-11 pt-3 mt-3 border-t border-industrial-border/50">
+                      <div
+                        className="flex items-start gap-2 pl-11 pt-3 mt-3 border-t border-industrial-border/50 cursor-pointer group hover:bg-industrial-hover/50 -mx-4 px-4 -mb-4 pb-4 rounded-b-lg transition-colors"
+                        onClick={() => handleOpenCase(linkedCase)}
+                      >
                         <FileText size={14} className="text-status-success mt-0.5 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <div className="text-xs text-industrial-subtle mb-1">关联知识案例</div>
-                          <div className="text-sm text-industrial-text font-medium flex items-center gap-1">
+                          <div className="text-sm text-industrial-text font-medium flex items-center gap-1 group-hover:text-primary-400 transition-colors">
                             {linkedCase.title}
-                            <ArrowRight size={12} className="text-primary-400" />
+                            <ChevronRight size={14} className="text-industrial-subtle group-hover:text-primary-400 transition-colors" />
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-xs">
                             <span className="text-industrial-subtle">质量评分</span>
@@ -206,6 +218,16 @@ export function HeatmapDrillDown({ cell, records, cases, onClose }: HeatmapDrill
           )}
         </div>
       </div>
+
+      {selectedCase && (
+        <CaseDetailDrawer
+          caseData={selectedCase}
+          relatedRecords={records.filter((r) => r.caseId === selectedCase.id)}
+          allCases={cases}
+          open={caseDrawerOpen}
+          onClose={() => setCaseDrawerOpen(false)}
+        />
+      )}
     </div>
   );
 }

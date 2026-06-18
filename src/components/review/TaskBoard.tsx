@@ -12,6 +12,7 @@ import {
   Flame,
   Timer,
   UserPlus,
+  FileWarning,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -30,7 +31,12 @@ interface TaskCardProps {
 
 function TaskCard({ task, onClick, onAssign, onStatusChange }: TaskCardProps) {
   const [showAssign, setShowAssign] = useState(false);
-  const TypeIcon = task.type === "HIGH_FREQ" ? AlertTriangle : Timer;
+  const TypeIcon =
+    task.type === "QUALITY_ISSUE"
+      ? FileWarning
+      : task.type === "HIGH_FREQ"
+        ? AlertTriangle
+        : Timer;
 
   const nextStatus: TaskStatus | null =
     task.status === "PENDING" ? "IN_PROGRESS" : task.status === "IN_PROGRESS" ? "DONE" : null;
@@ -49,9 +55,11 @@ function TaskCard({ task, onClick, onAssign, onStatusChange }: TaskCardProps) {
           <span
             className={cn(
               "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border",
-              task.type === "HIGH_FREQ"
-                ? "bg-status-warning/15 text-status-warning border-status-warning/30"
-                : "bg-status-danger/15 text-status-danger border-status-danger/30",
+              task.type === "QUALITY_ISSUE"
+                ? "bg-status-info/15 text-status-info border-status-info/30"
+                : task.type === "HIGH_FREQ"
+                  ? "bg-status-warning/15 text-status-warning border-status-warning/30"
+                  : "bg-status-danger/15 text-status-danger border-status-danger/30",
             )}
           >
             <TypeIcon size={10} />
@@ -78,6 +86,17 @@ function TaskCard({ task, onClick, onAssign, onStatusChange }: TaskCardProps) {
       {task.type === "TIMEOUT" && task.overHours && (
         <div className="flex items-center gap-3 text-[11px] text-industrial-subtle mb-2">
           <span>超时 <span className="text-status-danger font-mono font-medium">+{task.overHours}h</span></span>
+        </div>
+      )}
+      {task.type === "QUALITY_ISSUE" && task.riskReason && (
+        <div className="text-[11px] text-industrial-subtle mb-2 p-2 bg-status-info/5 border border-status-info/10 rounded">
+          <span className="text-status-info font-medium">风险原因：</span>
+          <span className="line-clamp-2">{task.riskReason}</span>
+        </div>
+      )}
+      {task.type === "QUALITY_ISSUE" && task.source && (
+        <div className="text-[10px] text-industrial-muted mb-2 flex items-center gap-1">
+          <span>来源：{task.source}</span>
         </div>
       )}
 

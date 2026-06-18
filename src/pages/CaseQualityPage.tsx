@@ -39,13 +39,16 @@ export function CaseQualityPage() {
   const filterOptions = getFilterOptions();
   const activeFilters = useMemo(() => {
     const items: string[] = [];
+    if (dateRange?.start && dateRange?.end) {
+      items.push(`${dateRange.start} ~ ${dateRange.end}`);
+    }
     if (aircraftTypes.length > 0) items.push(`机型 ×${aircraftTypes.length}`);
     if (bases.length > 0) items.push(`基地 ×${bases.length}`);
     if (ataChapters.length > 0) items.push(`ATA ×${ataChapters.length}`);
     if (seasons.length > 0) items.push(`季节 ×${seasons.length}`);
     if (faultCodes.length > 0) items.push(`故障代码 ×${faultCodes.length}`);
     return items;
-  }, [aircraftTypes, bases, ataChapters, seasons, faultCodes]);
+  }, [aircraftTypes, bases, ataChapters, seasons, faultCodes, dateRange]);
 
   const stats = useMemo(() => {
     const total = cases.length;
@@ -143,14 +146,12 @@ export function CaseQualityPage() {
       ) : (
         <EmptyState
           title="暂无匹配案例"
-          description={
-            activeFilters.length > 0
-              ? `当前筛选条件：${activeFilters.join("，")}，未找到匹配的知识案例`
-              : "当前筛选条件下没有找到知识案例，请尝试调整筛选条件"
-          }
+          description="当前筛选条件下未找到匹配的知识案例，试试调整筛选条件"
           iconName="BookOpen"
+          filterInfo={activeFilters}
           showClearButton={activeFilters.length > 0}
           onClear={reset}
+          clearButtonText="清空所有筛选条件"
         />
       )}
     </div>

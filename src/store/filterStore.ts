@@ -88,12 +88,12 @@ export function filterKnowledgeCases(
   const filteredRecords = filterFaultRecords(allFaultRecords, filters);
   const caseIdSet = new Set<string>();
   const faultCodeSet = new Set<string>();
-  const ataChapterSet = new Set<string>();
+  const faultCodeCount = new Map<string, number>();
 
   for (const r of filteredRecords) {
     if (r.caseId) caseIdSet.add(r.caseId);
     faultCodeSet.add(r.faultCode);
-    ataChapterSet.add(r.ataChapter);
+    faultCodeCount.set(r.faultCode, (faultCodeCount.get(r.faultCode) || 0) + 1);
   }
 
   const hasRecordFilters =
@@ -110,7 +110,7 @@ export function filterKnowledgeCases(
       return false;
     }
     if (hasRecordFilters) {
-      if (!caseIdSet.has(c.id) && !faultCodeSet.has(c.faultCode) && !ataChapterSet.has(c.ataChapter)) {
+      if (!caseIdSet.has(c.id) && !faultCodeSet.has(c.faultCode)) {
         return false;
       }
     }

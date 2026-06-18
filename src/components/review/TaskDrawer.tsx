@@ -17,6 +17,9 @@ import {
   Calendar,
   ChevronDown,
   MessageSquare,
+  FileWarning,
+  Target,
+  Lightbulb,
 } from "lucide-react";
 
 export function TaskDrawer() {
@@ -43,7 +46,12 @@ export function TaskDrawer() {
 
   if (!drawerOpen || !selectedTask) return null;
 
-  const TypeIcon = selectedTask.type === "HIGH_FREQ" ? AlertTriangle : Timer;
+  const TypeIcon =
+    selectedTask.type === "QUALITY_ISSUE"
+      ? FileWarning
+      : selectedTask.type === "HIGH_FREQ"
+        ? AlertTriangle
+        : Timer;
 
   const handleClose = () => {
     setDrawerOpen(false);
@@ -103,9 +111,11 @@ export function TaskDrawer() {
             <div
               className={cn(
                 "p-2 rounded-md shrink-0",
-                selectedTask.type === "HIGH_FREQ"
-                  ? "bg-status-warning/15 text-status-warning"
-                  : "bg-status-danger/15 text-status-danger",
+                selectedTask.type === "QUALITY_ISSUE"
+                  ? "bg-status-info/15 text-status-info"
+                  : selectedTask.type === "HIGH_FREQ"
+                    ? "bg-status-warning/15 text-status-warning"
+                    : "bg-status-danger/15 text-status-danger",
               )}
             >
               <TypeIcon size={18} />
@@ -118,9 +128,11 @@ export function TaskDrawer() {
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border",
-                    selectedTask.type === "HIGH_FREQ"
-                      ? "bg-status-warning/15 text-status-warning border-status-warning/30"
-                      : "bg-status-danger/15 text-status-danger border-status-danger/30",
+                    selectedTask.type === "QUALITY_ISSUE"
+                      ? "bg-status-info/15 text-status-info border-status-info/30"
+                      : selectedTask.type === "HIGH_FREQ"
+                        ? "bg-status-warning/15 text-status-warning border-status-warning/30"
+                        : "bg-status-danger/15 text-status-danger border-status-danger/30",
                   )}
                 >
                   {getTaskTypeLabel(selectedTask.type)}
@@ -316,6 +328,42 @@ export function TaskDrawer() {
                   </span>
                   ，需复盘排故路径
                 </p>
+              </div>
+            )}
+
+            {selectedTask.type === "QUALITY_ISSUE" && (
+              <div className="space-y-3">
+                {selectedTask.riskReason && (
+                  <div className="p-3 rounded-md bg-status-info/5 border border-status-info/20">
+                    <div className="flex items-center gap-2 text-sm text-status-info font-medium mb-2">
+                      <Target size={14} />
+                      风险原因
+                    </div>
+                    <p className="text-xs text-industrial-text leading-relaxed">
+                      {selectedTask.riskReason}
+                    </p>
+                  </div>
+                )}
+                {selectedTask.suggestedAction && (
+                  <div className="p-3 rounded-md bg-status-success/5 border border-status-success/20">
+                    <div className="flex items-center gap-2 text-sm text-status-success font-medium mb-2">
+                      <Lightbulb size={14} />
+                      建议处理方向
+                    </div>
+                    <p className="text-xs text-industrial-text leading-relaxed">
+                      {selectedTask.suggestedAction}
+                    </p>
+                  </div>
+                )}
+                {selectedTask.source && (
+                  <div className="p-3 rounded-md bg-industrial-card border border-industrial-border">
+                    <div className="flex items-center gap-2 text-sm text-industrial-subtle font-medium mb-1">
+                      <FileText size={14} />
+                      来源案例
+                    </div>
+                    <p className="text-xs text-industrial-text">{selectedTask.source}</p>
+                  </div>
+                )}
               </div>
             )}
 

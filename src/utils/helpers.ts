@@ -108,7 +108,16 @@ export function getStatusLabel(status: string): string {
 }
 
 export function getTaskTypeLabel(type: string): string {
-  return type === "HIGH_FREQ" ? "高频重复故障" : "超时排故";
+  switch (type) {
+    case "QUALITY_ISSUE":
+      return "质量问题复盘";
+    case "HIGH_FREQ":
+      return "高频重复故障";
+    case "TIMEOUT":
+      return "超时排故";
+    default:
+      return type;
+  }
 }
 
 export function generateId(): string {
