@@ -83,13 +83,36 @@ export function filterFaultRecords(
 export function filterKnowledgeCases(
   cases: KnowledgeCase[],
   filters: FilterState,
+  allFaultRecords: FaultRecord[],
 ): KnowledgeCase[] {
+  const filteredRecords = filterFaultRecords(allFaultRecords, filters);
+  const caseIdSet = new Set<string>();
+  const faultCodeSet = new Set<string>();
+  const ataChapterSet = new Set<string>();
+
+  for (const r of filteredRecords) {
+    if (r.caseId) caseIdSet.add(r.caseId);
+    faultCodeSet.add(r.faultCode);
+    ataChapterSet.add(r.ataChapter);
+  }
+
+  const hasRecordFilters =
+    filters.aircraftTypes.length > 0 ||
+    filters.bases.length > 0 ||
+    filters.seasons.length > 0 ||
+    (filters.dateRange.start && filters.dateRange.end);
+
   return cases.filter((c) => {
     if (filters.ataChapters.length > 0 && !filters.ataChapters.includes(c.ataChapter)) {
       return false;
     }
     if (filters.faultCodes.length > 0 && !filters.faultCodes.includes(c.faultCode)) {
       return false;
+    }
+    if (hasRecordFilters) {
+      if (!caseIdSet.has(c.id) && !faultCodeSet.has(c.faultCode) && !ataChapterSet.has(c.ataChapter)) {
+        return false;
+      }
     }
     return true;
   });

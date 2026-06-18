@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ReviewTask, TaskStatus, TaskPriority, ActionType, TaskLog } from "@/types";
+import type { ReviewTask, TaskStatus, TaskPriority, ActionType, TaskLog, TaskType } from "@/types";
 import { generateReviewTasks, getFilterOptions } from "@/utils/mock";
 import { generateId } from "@/utils/helpers";
 
@@ -24,6 +24,15 @@ interface ReviewStore {
   ) => void;
   addTaskLog: (taskId: string, log: Omit<TaskLog, "timestamp">) => void;
   refreshTasks: () => void;
+  createTask: (data: {
+    faultCode: string;
+    faultName: string;
+    ataChapter: string;
+    riskReason: string;
+    suggestedAction: string;
+    source: string;
+    sourceId?: string;
+  }) => ReviewTask | null;
 }
 
 const STORAGE_KEY = "tli_review_tasks";
@@ -161,6 +170,50 @@ export const useReviewStore = create<ReviewStore>((set, get) => ({
     const tasks = generateReviewTasks();
     set({ tasks });
     saveToStorage(tasks);
+  },
+  createTask: (data) => {
+    const existing = get().tasks.find(
+      (t) => t.source === data.source && t.sourceId === data.sourceId,
+    );
+    if (existing) return null;
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7);
+
+    const newTask: ReviewTask = {
+      id: generateId(),
+      type: "QUALITY_ISSUE" as TaskType,
+      faultCode: data.faultCode,
+      faultName: data.faultName,
+      description: `${data.faultCode} ${data.faultName} - 案例质量问题`,
+      ataChapter: data.ataChapter,
+      occurrenceCount: 0,
+      avgDuration: 0,
+      status: "PENDING",
+      priority: "HIGH",
+      assignee: "",
+      needTraining: false,
+      riskReason: data.riskReason,
+      suggestedAction: data.suggestedAction,
+      source: data.source,
+      sourceId: data.sourceId,
+      createdAt: new Date().toISOString(),
+      dueDate: dueDate.toISOString(),
+      createdBy: "质控人员",
+      historyLog: [
+        {
+          timestamp: new Date().toISOString(),
+          action: "从案例质量页加入复盘清单",
+          operator: "质控人员",
+          remark: data.riskReason,
+        },
+      ],
+    };
+
+    const tasks = [...get().tasks, newTask];
+    set({ tasks });
+    saveToStorage(tasks);
+    return newTask;
   },
 }));
 

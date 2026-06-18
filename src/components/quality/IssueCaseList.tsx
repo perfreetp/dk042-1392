@@ -1,7 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { IssueCase, KnowledgeCase } from "@/types";
 import { generateIssueCases } from "@/utils/mock";
-import { AlertCircle, FileText, ArrowRight, BookOpen, ShieldCheck, RefreshCcw } from "lucide-react";
+import { useReviewStore } from "@/store/reviewStore";
+import {
+  AlertCircle,
+  FileText,
+  ArrowRight,
+  BookOpen,
+  ShieldCheck,
+  RefreshCcw,
+  Plus,
+  CheckCircle,
+} from "lucide-react";
 import { cn, formatDate } from "@/utils/helpers";
 import { EmptyState } from "@/components/common/EmptyState";
 
@@ -17,11 +27,46 @@ const MISSING_ITEM_CONFIG: Record<string, { icon: any; color: string; label: str
 };
 
 export function IssueCaseList({ cases }: IssueCaseListProps) {
+  const createTask = useReviewStore((s) => s.createTask);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const issues = useMemo(() => generateIssueCases(cases), [cases]);
 
   const criticalCount = issues.filter(
     (i) => i.missingItems.includes("手册依据") || i.qualityScore < 65,
   ).length;
+
+  const handleAddToReview = (item: IssueCase, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const riskReason = `存在问题：${item.missingItems.join("、")}，质量评分 ${item.qualityScore} 分，引用 ${item.referenceCount} 次，排故成功率 ${Math.round(item.successRate * 100)}%`;
+    const suggestedAction = item.missingItems.includes("手册依据")
+      ? "补充手册依据，更新排故步骤"
+      : item.missingItems.includes("放行结论")
+        ? "完善放行结论，明确放行标准"
+        : item.missingItems.includes("后续跟踪")
+          ? "补充后续跟踪记录，更新故障趋势"
+          : "修订排故提示，总结经验教训";
+
+    const result = createTask({
+      faultCode: item.faultCode,
+      faultName: item.title,
+      ataChapter: item.ataChapter,
+      riskReason,
+      suggestedAction,
+      source: "QUALITY_ISSUE",
+      sourceId: item.id,
+    });
+
+    if (result) {
+      setAddedIds((prev) => new Set(prev).add(item.id));
+      setTimeout(() => {
+        setAddedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(item.id);
+          return next;
+        });
+      }, 2000);
+    }
+  };
 
   if (cases.length === 0) {
     return (
@@ -104,27 +149,50 @@ export function IssueCaseList({ cases }: IssueCaseListProps) {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1.5 pl-6">
-                {item.missingItems.map((mi) => {
-                  const cfg = MISSING_ITEM_CONFIG[mi] || {
-                    icon: AlertCircle,
-                    color: "text-industrial-subtle bg-industrial-card border-industrial-border",
-                    label: mi,
-                  };
-                  const Icon = cfg.icon;
-                  return (
-                    <span
-                      key={mi}
-                      className={cn(
-                        "inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium",
-                        cfg.color,
-                      )}
-                    >
-                      <Icon size={10} />
-                      {cfg.label}
-                    </span>
-                  );
-                })}
+              <div className="flex items-center justify-between pl-6 mt-1">
+                <div className="flex flex-wrap gap-1.5">
+                  {item.missingItems.map((mi) => {
+                    const cfg = MISSING_ITEM_CONFIG[mi] || {
+                      icon: AlertCircle,
+                      color: "text-industrial-subtle bg-industrial-card border-industrial-border",
+                      label: mi,
+                    };
+                    const Icon = cfg.icon;
+                    return (
+                      <span
+                        key={mi}
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium",
+                          cfg.color,
+                        )}
+                      >
+                        <Icon size={10} />
+                        {cfg.label}
+                      </span>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={(e) => handleAddToReview(item, e)}
+                  className={cn(
+                    "shrink-0 flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all duration-300",
+                    addedIds.has(item.id)
+                      ? "bg-status-success/15 text-status-success border border-status-success/30"
+                      : "bg-primary-500/10 text-primary-400 border border-primary-500/30 hover:bg-primary-500/20 hover:border-primary-500/50",
+                  )}
+                >
+                  {addedIds.has(item.id) ? (
+                    <>
+                      <CheckCircle size={12} />
+                      已加入
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={12} />
+                      加入复盘
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           );

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 
 interface FaultHeatmapProps {
   records: FaultRecord[];
+  onCellClick?: (cell: HeatmapCell) => void;
 }
 
 interface TooltipState {
@@ -16,7 +17,7 @@ interface TooltipState {
   cell: HeatmapCell | null;
 }
 
-export function FaultHeatmap({ records }: FaultHeatmapProps) {
+export function FaultHeatmap({ records, onCellClick }: FaultHeatmapProps) {
   const data = useMemo(() => computeHeatmapFromRecords(records), [records]);
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
@@ -144,9 +145,11 @@ export function FaultHeatmap({ records }: FaultHeatmapProps) {
                       <td key={m} className="px-1 py-1 text-center">
                         <div
                           className={cn(
-                            "w-full h-9 rounded-md flex items-center justify-center text-xs font-mono cursor-pointer transition-all duration-200",
+                            "w-full h-9 rounded-md flex items-center justify-center text-xs font-mono transition-all duration-200",
                             getHeatmapColor(count, maxCount),
-                            count > 0 ? "text-white/90 hover:scale-105" : "text-industrial-muted",
+                            count > 0
+                              ? "text-white/90 hover:scale-105 cursor-pointer hover:ring-2 hover:ring-primary-400/50"
+                              : "text-industrial-muted cursor-default",
                           )}
                           onMouseEnter={(e) =>
                             setTooltip({
@@ -157,6 +160,11 @@ export function FaultHeatmap({ records }: FaultHeatmapProps) {
                             })
                           }
                           onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
+                          onClick={() => {
+                            if (count > 0 && onCellClick && cell) {
+                              onCellClick(cell);
+                            }
+                          }}
                         >
                           {count > 0 ? count : "-"}
                         </div>

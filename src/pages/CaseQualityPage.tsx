@@ -6,28 +6,46 @@ import { QualityScore } from "@/components/quality/QualityScore";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useFilterStore, filterKnowledgeCases } from "@/store/filterStore";
 import { formatPercent } from "@/utils/helpers";
+import { getFilterOptions } from "@/utils/mock";
 
 export function CaseQualityPage() {
   const allCases = useFilterStore((s) => s.allKnowledgeCases);
+  const allRecords = useFilterStore((s) => s.allFaultRecords);
   const aircraftTypes = useFilterStore((s) => s.aircraftTypes);
   const bases = useFilterStore((s) => s.bases);
   const ataChapters = useFilterStore((s) => s.ataChapters);
   const seasons = useFilterStore((s) => s.seasons);
   const faultCodes = useFilterStore((s) => s.faultCodes);
   const dateRange = useFilterStore((s) => s.dateRange);
+  const reset = useFilterStore((s) => s.reset);
 
   const cases = useMemo(
     () =>
-      filterKnowledgeCases(allCases, {
-        aircraftTypes,
-        bases,
-        ataChapters,
-        seasons,
-        faultCodes,
-        dateRange,
-      }),
-    [allCases, aircraftTypes, bases, ataChapters, seasons, faultCodes, dateRange],
+      filterKnowledgeCases(
+        allCases,
+        {
+          aircraftTypes,
+          bases,
+          ataChapters,
+          seasons,
+          faultCodes,
+          dateRange,
+        },
+        allRecords,
+      ),
+    [allCases, allRecords, aircraftTypes, bases, ataChapters, seasons, faultCodes, dateRange],
   );
+
+  const filterOptions = getFilterOptions();
+  const activeFilters = useMemo(() => {
+    const items: string[] = [];
+    if (aircraftTypes.length > 0) items.push(`机型 ×${aircraftTypes.length}`);
+    if (bases.length > 0) items.push(`基地 ×${bases.length}`);
+    if (ataChapters.length > 0) items.push(`ATA ×${ataChapters.length}`);
+    if (seasons.length > 0) items.push(`季节 ×${seasons.length}`);
+    if (faultCodes.length > 0) items.push(`故障代码 ×${faultCodes.length}`);
+    return items;
+  }, [aircraftTypes, bases, ataChapters, seasons, faultCodes]);
 
   const stats = useMemo(() => {
     const total = cases.length;
@@ -125,8 +143,14 @@ export function CaseQualityPage() {
       ) : (
         <EmptyState
           title="暂无匹配案例"
-          description="当前筛选条件下没有找到知识案例，请尝试调整 ATA 章节或故障代码筛选"
+          description={
+            activeFilters.length > 0
+              ? `当前筛选条件：${activeFilters.join("，")}，未找到匹配的知识案例`
+              : "当前筛选条件下没有找到知识案例，请尝试调整筛选条件"
+          }
           iconName="BookOpen"
+          showClearButton={activeFilters.length > 0}
+          onClear={reset}
         />
       )}
     </div>

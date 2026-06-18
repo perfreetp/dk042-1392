@@ -87,10 +87,12 @@ export function generateFaultRecords(count = 200): FaultRecord[] {
   for (let i = 0; i < count; i++) {
     const ata = randItem(ataChapters);
     const fault = randItem(faultCodes);
+    const handling = randItem(handlingActions);
     records.push({
       id: `FR${String(i + 1).padStart(5, "0")}`,
       faultCode: fault.code,
       faultName: fault.name,
+      faultDescription: `${ata.name}出现${fault.name}告警，${randItem(["伴随", "无", "存在"])}其他相关系统提示`,
       aircraftType: randItem(aircraftTypes),
       base: randItem(bases),
       ataChapter: ata.chapter,
@@ -100,7 +102,8 @@ export function generateFaultRecords(count = 200): FaultRecord[] {
       occurredAt: randDate(90),
       downTimeHours: +(Math.random() * 8 + 0.5).toFixed(1),
       durationHours: +(Math.random() * 6 + 0.3).toFixed(1),
-      handlingAction: randItem(handlingActions),
+      handlingAction: handling,
+      actionTaken: handling,
       caseId: Math.random() > 0.3 ? `KC${randInt(1, 50)}` : undefined,
       success: Math.random() > 0.15,
     });
@@ -115,6 +118,8 @@ export function generateKnowledgeCases(count = 50): KnowledgeCase[] {
     const refCount = randInt(3, 120);
     const successRate = +(Math.random() * 0.5 + 0.4).toFixed(2);
     const successCount = Math.floor(refCount * successRate);
+    const createdAt = randDate(365);
+    const updatedAt = new Date(new Date(createdAt).getTime() + randInt(1, 30) * 86400000).toISOString();
     cases.push({
       id: `KC${String(i + 1).padStart(4, "0")}`,
       title: `${fault.name}典型排故案例 - ${randItem(["经验总结", "维修提示", "故障分析"])}`,
@@ -129,7 +134,8 @@ export function generateKnowledgeCases(count = 50): KnowledgeCase[] {
       hasFollowUp: Math.random() > 0.35,
       qualityScore: randInt(55, 98),
       createdBy: randItem(engineers),
-      createdAt: randDate(365),
+      createdAt,
+      updatedAt,
     });
   }
   return cases;
@@ -140,13 +146,17 @@ export function generateReviewTasks(): ReviewTask[] {
   const highFreqFaults = faultCodes.slice(0, 8);
   for (let i = 0; i < highFreqFaults.length; i++) {
     const fault = highFreqFaults[i];
+    const occCount = randInt(5, 18);
+    const avgDur = +(Math.random() * 4 + 1).toFixed(1);
     tasks.push({
       id: `T${String(i + 1).padStart(4, "0")}`,
       type: "HIGH_FREQ",
       faultCode: fault.code,
       faultName: fault.name,
-      description: `${fault.code}近30天出现${randInt(5, 18)}次，重复率较高，需分析根本原因`,
-      occurrenceCount: randInt(5, 18),
+      description: `${fault.code}近30天出现${occCount}次，重复率较高，需分析根本原因`,
+      ataChapter: randItem(ataChapters).chapter,
+      occurrenceCount: occCount,
+      avgDuration: avgDur,
       status: (["PENDING", "IN_PROGRESS", "DONE"] as const)[randInt(0, 2)],
       priority: (["HIGH", "MEDIUM", "LOW"] as const)[randInt(0, 2)],
       assignee: Math.random() > 0.5 ? randItem(engineers) : undefined,
@@ -173,12 +183,17 @@ export function generateReviewTasks(): ReviewTask[] {
   for (let i = 0; i < timeoutFaults.length; i++) {
     const fault = timeoutFaults[i];
     const overHours = +(Math.random() * 5 + 1).toFixed(1);
+    const occCount = randInt(3, 10);
+    const avgDur = +(Math.random() * 3 + 2).toFixed(1);
     tasks.push({
       id: `T${String(i + 100).padStart(4, "0")}`,
       type: "TIMEOUT",
       faultCode: fault.code,
       faultName: fault.name,
       description: `${fault.code}处理超时，超过标准时长${overHours}小时，需复盘排故路径`,
+      ataChapter: randItem(ataChapters).chapter,
+      occurrenceCount: occCount,
+      avgDuration: avgDur,
       overHours,
       status: (["PENDING", "IN_PROGRESS", "DONE"] as const)[randInt(0, 2)],
       priority: (["HIGH", "MEDIUM", "LOW"] as const)[randInt(0, 2)],
@@ -338,6 +353,9 @@ export function generateIssueCases(cases: KnowledgeCase[]): IssueCase[] {
         id: c.id,
         title: c.title,
         faultCode: c.faultCode,
+        ataChapter: c.ataChapter,
+        referenceCount: c.referenceCount,
+        successRate: c.successRate,
         missingItems: missing,
         qualityScore: c.qualityScore,
         lastReferenced: randDate(60),

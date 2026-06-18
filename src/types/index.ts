@@ -11,6 +11,7 @@ export interface FaultRecord {
   id: string;
   faultCode: string;
   faultName: string;
+  faultDescription: string;
   aircraftType: string;
   base: string;
   ataChapter: string;
@@ -21,6 +22,7 @@ export interface FaultRecord {
   downTimeHours: number;
   durationHours: number;
   handlingAction: string;
+  actionTaken: string;
   caseId?: string;
   success: boolean;
 }
@@ -40,11 +42,12 @@ export interface KnowledgeCase {
   qualityScore: number;
   createdBy: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export type TaskStatus = "PENDING" | "IN_PROGRESS" | "DONE";
 export type TaskPriority = "HIGH" | "MEDIUM" | "LOW";
-export type TaskType = "HIGH_FREQ" | "TIMEOUT";
+export type TaskType = "HIGH_FREQ" | "TIMEOUT" | "QUALITY_ISSUE";
 export type ActionType = "ANALYSIS" | "REVISION" | "TRAINING";
 
 export interface TaskLog {
@@ -60,7 +63,9 @@ export interface ReviewTask {
   faultCode: string;
   faultName: string;
   description: string;
-  occurrenceCount?: number;
+  ataChapter: string;
+  occurrenceCount: number;
+  avgDuration: number;
   overHours?: number;
   status: TaskStatus;
   priority: TaskPriority;
@@ -69,6 +74,10 @@ export interface ReviewTask {
   action?: string;
   actionType?: ActionType;
   needTraining: boolean;
+  riskReason?: string;
+  suggestedAction?: string;
+  source?: string;
+  sourceId?: string;
   createdAt: string;
   dueDate: string;
   createdBy: string;
@@ -113,6 +122,9 @@ export interface IssueCase {
   id: string;
   title: string;
   faultCode: string;
+  ataChapter: string;
+  referenceCount: number;
+  successRate: number;
   missingItems: string[];
   qualityScore: number;
   lastReferenced: string;

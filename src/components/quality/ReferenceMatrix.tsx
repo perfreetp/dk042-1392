@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { KnowledgeCase } from "@/types";
+import { useReviewStore } from "@/store/reviewStore";
 import {
   ScatterChart,
   Scatter,
@@ -11,8 +12,21 @@ import {
   Cell,
   ReferenceLine,
 } from "recharts";
-import { Info, AlertTriangle, CheckCircle, TrendingDown } from "lucide-react";
-import { cn } from "@/utils/helpers";
+import {
+  Info,
+  AlertTriangle,
+  CheckCircle,
+  TrendingDown,
+  Plus,
+  X,
+  FileText,
+  Target,
+  Star,
+  BookOpen,
+  ShieldCheck,
+  RefreshCcw,
+} from "lucide-react";
+import { cn, formatDate } from "@/utils/helpers";
 import { EmptyState } from "@/components/common/EmptyState";
 
 interface ReferenceMatrixProps {
@@ -26,7 +40,10 @@ interface HoveredCase {
 }
 
 export function ReferenceMatrix({ cases }: ReferenceMatrixProps) {
+  const createTask = useReviewStore((s) => s.createTask);
   const [hovered, setHovered] = useState<HoveredCase>({ data: null, x: 0, y: 0 });
+  const [selected, setSelected] = useState<KnowledgeCase | null>(null);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
   const chartData = useMemo(
     () =>
@@ -34,6 +51,7 @@ export function ReferenceMatrix({ cases }: ReferenceMatrixProps) {
         id: c.id,
         title: c.title,
         faultCode: c.faultCode,
+        ataChapter: c.ataChapter,
         x: c.referenceCount,
         y: Math.round(c.successRate * 100),
         z: Math.max(20, c.qualityScore / 3),
@@ -42,6 +60,39 @@ export function ReferenceMatrix({ cases }: ReferenceMatrixProps) {
       })),
     [cases],
   );
+
+  const handleAddToReview = (c: KnowledgeCase) => {
+    const issues: string[] = [];
+    if (!c.hasManualReference) issues.push("缺手册依据");
+    if (!c.hasReleaseConclusion) issues.push("缺放行结论");
+    if (!c.hasFollowUp) issues.push("缺后续跟踪");
+    if (c.qualityScore < 70) issues.push("质量评分偏低");
+    const riskReason = issues.length > 0
+      ? `高引用低成功率：引用 ${c.referenceCount} 次，排故成功率 ${Math.round(c.successRate * 100)}%，${issues.join("、")}`
+      : `高引用低成功率：引用 ${c.referenceCount} 次，排故成功率 ${Math.round(c.successRate * 100)}%，需修订排故提示`;
+    const suggestedAction = "修订排故提示，补充关键检查步骤，组织相关培训";
+
+    const result = createTask({
+      faultCode: c.faultCode,
+      faultName: c.title,
+      ataChapter: c.ataChapter,
+      riskReason,
+      suggestedAction,
+      source: "REFERENCE_RISK",
+      sourceId: c.id,
+    });
+
+    if (result) {
+      setAddedIds((prev) => new Set(prev).add(c.id));
+      setTimeout(() => {
+        setAddedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(c.id);
+          return next;
+        });
+      }, 2000);
+    }
+  };
 
   const highRiskCount = cases.filter(
     (c) => c.referenceCount >= 30 && c.successRate < 0.65,
@@ -207,7 +258,13 @@ export function ReferenceMatrix({ cases }: ReferenceMatrixProps) {
                         ? "#10b981"
                         : "#3b82f6"
                   }
-                  strokeWidth={entry.risk || entry.reliable ? 1.5 : 0.5}
+                  strokeWidth={
+                    selected?.id === entry.id
+                      ? 3
+                      : entry.risk || entry.reliable
+                        ? 1.5
+                        : 0.5
+                  }
                   onMouseEnter={() => {
                     const c = cases.find((cc) => cc.id === entry.id);
                     if (c) {
@@ -215,6 +272,11 @@ export function ReferenceMatrix({ cases }: ReferenceMatrixProps) {
                     }
                   }}
                   onMouseLeave={() => setHovered({ data: null, x: 0, y: 0 })}
+                  onClick={() => {
+                    const c = cases.find((cc) => cc.id === entry.id);
+                    if (c) setSelected(c);
+                  }}
+                  style={{ cursor: "pointer" }}
                 />
               ))}
             </Scatter>
@@ -222,38 +284,137 @@ export function ReferenceMatrix({ cases }: ReferenceMatrixProps) {
         </ResponsiveContainer>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-industrial-border">
-        <div className="p-3 rounded-md bg-status-danger/5 border border-status-danger/15">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle size={14} className="text-status-danger" />
-            <span className="text-xs text-industrial-subtle">需紧急修订</span>
-          </div>
-          <div className="text-lg font-mono font-semibold text-status-danger">
-            {highRiskCount}
-            <span className="text-xs text-industrial-subtle font-normal ml-1">条</span>
+      {selected && (
+        <div className="mt-5 pt-5 border-t border-industrial-border">
+          <div className="p-4 rounded-lg bg-status-danger/5 border border-status-danger/20">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="p-2 rounded-md bg-status-danger/15 text-status-danger shrink-0">
+                  <AlertTriangle size={18} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="px-2 py-0.5 rounded bg-status-danger/15 text-status-danger text-xs font-mono">
+                      {selected.faultCode}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-primary-500/10 text-primary-400 text-xs font-mono">
+                      ATA {selected.ataChapter}
+                    </span>
+                    {!selected.hasManualReference && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-status-danger/10 text-status-danger text-xs border border-status-danger/20">
+                        <BookOpen size={10} /> 缺手册依据
+                      </span>
+                    )}
+                    {!selected.hasReleaseConclusion && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-status-warning/10 text-status-warning text-xs border border-status-warning/20">
+                        <ShieldCheck size={10} /> 缺放行结论
+                      </span>
+                    )}
+                    {!selected.hasFollowUp && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary-500/10 text-primary-400 text-xs border border-primary-500/20">
+                        <RefreshCcw size={10} /> 缺后续跟踪
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm font-medium text-industrial-text mb-1">{selected.title}</div>
+                  <div className="flex items-center gap-4 text-xs text-industrial-subtle">
+                    <span className="flex items-center gap-1">
+                      <Target size={11} />
+                      引用 {selected.referenceCount} 次
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle size={11} />
+                      成功率 {Math.round(selected.successRate * 100)}%
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Star size={11} />
+                      评分 {selected.qualityScore}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <FileText size={11} />
+                      更新 {formatDate(selected.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-4">
+                <button
+                  onClick={() => handleAddToReview(selected)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-300",
+                    addedIds.has(selected.id)
+                      ? "bg-status-success/15 text-status-success border border-status-success/30"
+                      : "bg-status-danger/15 text-status-danger border border-status-danger/30 hover:bg-status-danger/25",
+                  )}
+                >
+                  {addedIds.has(selected.id) ? (
+                    <>
+                      <CheckCircle size={14} />
+                      已加入复盘
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={14} />
+                      加入复盘清单
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="w-8 h-8 rounded-md bg-industrial-surface hover:bg-industrial-hover flex items-center justify-center text-industrial-subtle hover:text-industrial-text transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="pl-11 pr-20">
+              <div className="text-xs text-industrial-subtle mb-1">风险分析</div>
+              <div className="text-sm text-industrial-text">
+                该条目被频繁引用（{selected.referenceCount} 次），但排故成功率仅{" "}
+                <span className="text-status-danger font-semibold">
+                  {Math.round(selected.successRate * 100)}%
+                </span>
+                ，可能存在排故步骤不准确或遗漏关键检查点的问题，建议尽快修订并排程培训。
+              </div>
+            </div>
           </div>
         </div>
-        <div className="p-3 rounded-md bg-status-success/5 border border-status-success/15">
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle size={14} className="text-status-success" />
-            <span className="text-xs text-industrial-subtle">经验证可靠</span>
+      )}
+
+      {!selected && (
+        <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-industrial-border">
+          <div className="p-3 rounded-md bg-status-danger/5 border border-status-danger/15">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle size={14} className="text-status-danger" />
+              <span className="text-xs text-industrial-subtle">需紧急修订</span>
+            </div>
+            <div className="text-lg font-mono font-semibold text-status-danger">
+              {highRiskCount}
+              <span className="text-xs text-industrial-subtle font-normal ml-1">条</span>
+            </div>
           </div>
-          <div className="text-lg font-mono font-semibold text-status-success">
-            {reliableCount}
-            <span className="text-xs text-industrial-subtle font-normal ml-1">条</span>
+          <div className="p-3 rounded-md bg-status-success/5 border border-status-success/15">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle size={14} className="text-status-success" />
+              <span className="text-xs text-industrial-subtle">经验证可靠</span>
+            </div>
+            <div className="text-lg font-mono font-semibold text-status-success">
+              {reliableCount}
+              <span className="text-xs text-industrial-subtle font-normal ml-1">条</span>
+            </div>
+          </div>
+          <div className="p-3 rounded-md bg-industrial-surface border border-industrial-border">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingDown size={14} className="text-industrial-subtle" />
+              <span className="text-xs text-industrial-subtle">引用不足</span>
+            </div>
+            <div className="text-lg font-mono font-semibold text-industrial-text">
+              {lowRefCount}
+              <span className="text-xs text-industrial-subtle font-normal ml-1">条</span>
+            </div>
           </div>
         </div>
-        <div className="p-3 rounded-md bg-industrial-surface border border-industrial-border">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingDown size={14} className="text-industrial-subtle" />
-            <span className="text-xs text-industrial-subtle">引用不足</span>
-          </div>
-          <div className="text-lg font-mono font-semibold text-industrial-text">
-            {lowRefCount}
-            <span className="text-xs text-industrial-subtle font-normal ml-1">条</span>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
