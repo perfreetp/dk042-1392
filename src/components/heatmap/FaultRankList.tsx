@@ -1,12 +1,27 @@
 import { useMemo } from "react";
-import type { FaultRank } from "@/types";
-import { generateFaultRecords, generateFaultRanks } from "@/utils/mock";
+import type { FaultRank, FaultRecord } from "@/types";
+import { generateFaultRanks } from "@/utils/mock";
 import { formatHours, formatPercent, cn } from "@/utils/helpers";
 import { ArrowUpRight } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 
-export function FaultRankList() {
-  const records = useMemo(() => generateFaultRecords(200), []);
+interface FaultRankListProps {
+  records: FaultRecord[];
+}
+
+export function FaultRankList({ records }: FaultRankListProps) {
   const ranks = useMemo(() => generateFaultRanks(records), [records]);
+
+  if (ranks.length === 0) {
+    return (
+      <EmptyState
+        title="暂无排行数据"
+        description="当前筛选范围内没有故障记录"
+        iconName="BarChart3"
+        className="animate-fade-in-up"
+      />
+    );
+  }
 
   return (
     <div className="card-base p-5 animate-fade-in-up" style={{ animationDelay: "250ms" }}>

@@ -1,8 +1,13 @@
 import { useMemo, useState } from "react";
-import type { HeatmapCell } from "@/types";
-import { generateHeatmapData } from "@/utils/mock";
+import type { HeatmapCell, FaultRecord } from "@/types";
+import { computeHeatmapFromRecords } from "@/utils/mock";
 import { getHeatmapColor, cn } from "@/utils/helpers";
 import { Info } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
+
+interface FaultHeatmapProps {
+  records: FaultRecord[];
+}
 
 interface TooltipState {
   visible: boolean;
@@ -11,8 +16,8 @@ interface TooltipState {
   cell: HeatmapCell | null;
 }
 
-export function FaultHeatmap() {
-  const data = useMemo(() => generateHeatmapData(), []);
+export function FaultHeatmap({ records }: FaultHeatmapProps) {
+  const data = useMemo(() => computeHeatmapFromRecords(records), [records]);
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
     x: 0,
@@ -21,6 +26,11 @@ export function FaultHeatmap() {
   });
 
   const { months, chapters, maxCount } = useMemo(() => {
+    const monthList: string[] = [];
+    const monthOrder = [
+      "1月", "2月", "3月", "4月", "5月", "6月",
+      "7月", "8月", "9月", "10月", "11月", "12月",
+    ];
     const monthSet = new Set<string>();
     const chapterList: { chapter: string; name: string }[] = [];
     const seen = new Set<string>();
@@ -33,14 +43,31 @@ export function FaultHeatmap() {
       }
       if (cell.count > max) max = cell.count;
     }
-    return { months: Array.from(monthSet), chapters: chapterList, maxCount: max };
+    for (const m of monthOrder) {
+      if (monthSet.has(m)) monthList.push(m);
+    }
+    chapterList.sort((a, b) => a.chapter.localeCompare(b.chapter));
+    return { months: monthList, chapters: chapterList, maxCount: max };
   }, [data]);
 
   const getCell = (chapter: string, month: string) =>
     data.find((c) => c.ataChapter === chapter && c.month === month);
 
   const totalCount = data.reduce((sum, c) => sum + c.count, 0);
-  const avgCount = Math.round(totalCount / data.length);
+  const avgCount = chapters.length > 0 && months.length > 0
+    ? Math.round(totalCount / (chapters.length * months.length))
+    : 0;
+
+  if (data.length === 0) {
+    return (
+      <EmptyState
+        title="暂无热力数据"
+        description="当前筛选范围内没有故障记录"
+        iconName="LayoutGrid"
+        className="animate-fade-in-up"
+      />
+    );
+  }
 
   return (
     <div className="card-base p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
@@ -54,7 +81,7 @@ export function FaultHeatmap() {
             </span>
           </h3>
           <p className="text-xs text-industrial-subtle mt-1">
-            近3个月共 <span className="text-industrial-text font-mono">{totalCount}</span> 次故障，月均{" "}
+            筛选范围内共 <span className="text-industrial-text font-mono">{totalCount}</span> 次故障，月均{" "}
             <span className="text-industrial-text font-mono">{avgCount}</span> 次/章节
           </p>
         </div>

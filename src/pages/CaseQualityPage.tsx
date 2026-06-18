@@ -3,14 +3,44 @@ import { KpiCard } from "@/components/common/KpiCard";
 import { ReferenceMatrix } from "@/components/quality/ReferenceMatrix";
 import { IssueCaseList } from "@/components/quality/IssueCaseList";
 import { QualityScore } from "@/components/quality/QualityScore";
-import { generateKnowledgeCases } from "@/utils/mock";
+import { EmptyState } from "@/components/common/EmptyState";
+import { useFilterStore, filterKnowledgeCases } from "@/store/filterStore";
 import { formatPercent } from "@/utils/helpers";
 
 export function CaseQualityPage() {
-  const cases = useMemo(() => generateKnowledgeCases(50), []);
+  const allCases = useFilterStore((s) => s.allKnowledgeCases);
+  const aircraftTypes = useFilterStore((s) => s.aircraftTypes);
+  const bases = useFilterStore((s) => s.bases);
+  const ataChapters = useFilterStore((s) => s.ataChapters);
+  const seasons = useFilterStore((s) => s.seasons);
+  const faultCodes = useFilterStore((s) => s.faultCodes);
+  const dateRange = useFilterStore((s) => s.dateRange);
+
+  const cases = useMemo(
+    () =>
+      filterKnowledgeCases(allCases, {
+        aircraftTypes,
+        bases,
+        ataChapters,
+        seasons,
+        faultCodes,
+        dateRange,
+      }),
+    [allCases, aircraftTypes, bases, ataChapters, seasons, faultCodes, dateRange],
+  );
 
   const stats = useMemo(() => {
     const total = cases.length;
+    if (total === 0) {
+      return {
+        total: 0,
+        manualRate: 0,
+        releaseRate: 0,
+        followUpRate: 0,
+        avgSuccess: 0,
+        avgScore: 0,
+      };
+    }
     const hasManual = cases.filter((c) => c.hasManualReference).length;
     const hasRelease = cases.filter((c) => c.hasReleaseConclusion).length;
     const hasFollowUp = cases.filter((c) => c.hasFollowUp).length;
@@ -26,6 +56,8 @@ export function CaseQualityPage() {
       avgScore: Math.round(avgScore),
     };
   }, [cases]);
+
+  const hasData = cases.length > 0;
 
   return (
     <div className="space-y-6">
@@ -79,14 +111,24 @@ export function CaseQualityPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <ReferenceMatrix />
-        </div>
-        <QualityScore />
-      </div>
+      {hasData ? (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-2">
+              <ReferenceMatrix cases={cases} />
+            </div>
+            <QualityScore cases={cases} />
+          </div>
 
-      <IssueCaseList />
+          <IssueCaseList cases={cases} />
+        </>
+      ) : (
+        <EmptyState
+          title="暂无匹配案例"
+          description="当前筛选条件下没有找到知识案例，请尝试调整 ATA 章节或故障代码筛选"
+          iconName="BookOpen"
+        />
+      )}
     </div>
   );
 }

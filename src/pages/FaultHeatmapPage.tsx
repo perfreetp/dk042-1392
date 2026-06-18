@@ -4,21 +4,44 @@ import { FaultHeatmap } from "@/components/heatmap/FaultHeatmap";
 import { FaultRankList } from "@/components/heatmap/FaultRankList";
 import { RepeatAircraftList } from "@/components/heatmap/RepeatAircraft";
 import { ActionStats } from "@/components/heatmap/ActionStats";
-import { generateFaultRecords } from "@/utils/mock";
+import { EmptyState } from "@/components/common/EmptyState";
+import { useFilterStore, filterFaultRecords } from "@/store/filterStore";
 import { formatHours } from "@/utils/helpers";
 
 export function FaultHeatmapPage() {
-  const records = useMemo(() => generateFaultRecords(200), []);
+  const allRecords = useFilterStore((s) => s.allFaultRecords);
+  const aircraftTypes = useFilterStore((s) => s.aircraftTypes);
+  const bases = useFilterStore((s) => s.bases);
+  const ataChapters = useFilterStore((s) => s.ataChapters);
+  const seasons = useFilterStore((s) => s.seasons);
+  const faultCodes = useFilterStore((s) => s.faultCodes);
+  const dateRange = useFilterStore((s) => s.dateRange);
+
+  const records = useMemo(
+    () =>
+      filterFaultRecords(allRecords, {
+        aircraftTypes,
+        bases,
+        ataChapters,
+        seasons,
+        faultCodes,
+        dateRange,
+      }),
+    [allRecords, aircraftTypes, bases, ataChapters, seasons, faultCodes, dateRange],
+  );
 
   const stats = useMemo(() => {
     const total = records.length;
+    if (total === 0) {
+      return { total: 0, avgDownTime: "0", avgDuration: "0", repeatAircraft: 0 };
+    }
     const avgDown = records.reduce((s, r) => s + r.downTimeHours, 0) / total;
     const avgDuration = records.reduce((s, r) => s + r.durationHours, 0) / total;
-    const aircraftSet = new Set(records.map((r) => r.aircraftReg));
-    const repeatAircraft = Array.from(aircraftSet).filter((reg) => {
-      const count = records.filter((r) => r.aircraftReg === reg).length;
-      return count >= 2;
-    }).length;
+    const countMap = new Map<string, number>();
+    for (const r of records) {
+      countMap.set(r.aircraftReg, (countMap.get(r.aircraftReg) || 0) + 1);
+    }
+    const repeatAircraft = Array.from(countMap.values()).filter((c) => c >= 2).length;
 
     return {
       total,
@@ -28,12 +51,14 @@ export function FaultHeatmapPage() {
     };
   }, [records]);
 
+  const hasData = records.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="animate-fade-in">
         <h2 className="text-xl font-semibold text-industrial-text mb-1">故障热力分析</h2>
         <p className="text-sm text-industrial-subtle">
-          基于近3个月维修数据，多维度分析故障分布与处理效率
+          基于筛选条件下的维修数据，多维度分析故障分布与处理效率
         </p>
       </div>
 
@@ -74,14 +99,24 @@ export function FaultHeatmapPage() {
         />
       </div>
 
-      <FaultHeatmap />
+      {hasData ? (
+        <>
+          <FaultHeatmap records={records} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <RepeatAircraftList />
-        <ActionStats />
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <RepeatAircraftList records={records} />
+            <ActionStats records={records} />
+          </div>
 
-      <FaultRankList />
+          <FaultRankList records={records} />
+        </>
+      ) : (
+        <EmptyState
+          title="暂无匹配数据"
+          description="当前筛选条件下没有找到故障记录，请尝试调整筛选条件"
+          iconName="SearchX"
+        />
+      )}
     </div>
   );
 }

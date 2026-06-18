@@ -1,12 +1,16 @@
 import { useMemo } from "react";
-import type { ActionStat } from "@/types";
-import { generateFaultRecords, generateActionStats } from "@/utils/mock";
+import type { ActionStat, FaultRecord } from "@/types";
+import { generateActionStats } from "@/utils/mock";
 import { formatHours, formatPercent, cn } from "@/utils/helpers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Wrench } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 
-export function ActionStats() {
-  const records = useMemo(() => generateFaultRecords(200), []);
+interface ActionStatsProps {
+  records: FaultRecord[];
+}
+
+export function ActionStats({ records }: ActionStatsProps) {
   const stats = useMemo(() => generateActionStats(records), [records]);
   const chartData = stats.slice(0, 8).map((s) => ({
     name: s.action.slice(0, 8) + (s.action.length > 8 ? "..." : ""),
@@ -14,6 +18,17 @@ export function ActionStats() {
     count: s.count,
     successRate: s.successRate,
   }));
+
+  if (records.length === 0) {
+    return (
+      <EmptyState
+        title="暂无处理动作数据"
+        description="当前筛选范围内没有故障记录"
+        iconName="Wrench"
+        className="animate-fade-in-up"
+      />
+    );
+  }
 
   return (
     <div className="card-base p-5 animate-fade-in-up" style={{ animationDelay: "350ms" }}>

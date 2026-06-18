@@ -107,21 +107,19 @@ function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
 
 export function FilterPanel() {
   const options = getFilterOptions();
-  const {
-    aircraftTypes,
-    bases,
-    ataChapters,
-    seasons,
-    faultCodes,
-    dateRange,
-    setAircraftTypes,
-    setBases,
-    setAtaChapters,
-    setSeasons,
-    setFaultCodes,
-    setDateRange,
-    reset,
-  } = useFilterStore();
+  const aircraftTypes = useFilterStore((s) => s.aircraftTypes);
+  const bases = useFilterStore((s) => s.bases);
+  const ataChapters = useFilterStore((s) => s.ataChapters);
+  const seasons = useFilterStore((s) => s.seasons);
+  const faultCodes = useFilterStore((s) => s.faultCodes);
+  const dateRange = useFilterStore((s) => s.dateRange);
+  const setAircraftTypes = useFilterStore((s) => s.setAircraftTypes);
+  const setBases = useFilterStore((s) => s.setBases);
+  const setAtaChapters = useFilterStore((s) => s.setAtaChapters);
+  const setSeasons = useFilterStore((s) => s.setSeasons);
+  const setFaultCodes = useFilterStore((s) => s.setFaultCodes);
+  const setDateRange = useFilterStore((s) => s.setDateRange);
+  const reset = useFilterStore((s) => s.reset);
 
   const aircraftTypeOpts = aircraftTypes.map((v) => ({ value: v, label: v }));
   const baseOpts = bases.map((v) => ({ value: v, label: v }));

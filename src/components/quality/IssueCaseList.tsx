@@ -1,8 +1,13 @@
 import { useMemo } from "react";
-import type { IssueCase } from "@/types";
-import { generateKnowledgeCases, generateIssueCases } from "@/utils/mock";
+import type { IssueCase, KnowledgeCase } from "@/types";
+import { generateIssueCases } from "@/utils/mock";
 import { AlertCircle, FileText, ArrowRight, BookOpen, ShieldCheck, RefreshCcw } from "lucide-react";
 import { cn, formatDate } from "@/utils/helpers";
+import { EmptyState } from "@/components/common/EmptyState";
+
+interface IssueCaseListProps {
+  cases: KnowledgeCase[];
+}
 
 const MISSING_ITEM_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
   手册依据: { icon: BookOpen, color: "text-status-danger bg-status-danger/15 border-status-danger/30", label: "缺手册依据" },
@@ -11,11 +16,23 @@ const MISSING_ITEM_CONFIG: Record<string, { icon: any; color: string; label: str
   评分偏低: { icon: AlertCircle, color: "text-status-warning bg-status-warning/15 border-status-warning/30", label: "评分偏低" },
 };
 
-export function IssueCaseList() {
-  const cases = useMemo(() => generateKnowledgeCases(50), []);
+export function IssueCaseList({ cases }: IssueCaseListProps) {
   const issues = useMemo(() => generateIssueCases(cases), [cases]);
 
-  const criticalCount = issues.filter((i) => i.missingItems.includes("手册依据") || i.qualityScore < 65).length;
+  const criticalCount = issues.filter(
+    (i) => i.missingItems.includes("手册依据") || i.qualityScore < 65,
+  ).length;
+
+  if (cases.length === 0) {
+    return (
+      <EmptyState
+        title="暂无问题案例"
+        description="当前筛选范围内没有知识案例"
+        iconName="AlertTriangle"
+        className="animate-fade-in-up"
+      />
+    );
+  }
 
   return (
     <div className="card-base p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
@@ -35,7 +52,8 @@ export function IssueCaseList() {
 
       <div className="space-y-2 max-h-[520px] overflow-y-auto scrollbar-thin pr-1">
         {issues.map((item: IssueCase) => {
-          const isCritical = item.missingItems.includes("手册依据") || item.qualityScore < 65;
+          const isCritical =
+            item.missingItems.includes("手册依据") || item.qualityScore < 65;
           return (
             <div
               key={item.id}

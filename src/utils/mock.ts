@@ -346,6 +346,38 @@ export function generateIssueCases(cases: KnowledgeCase[]): IssueCase[] {
     .sort((a, b) => a.qualityScore - b.qualityScore);
 }
 
+export function computeHeatmapFromRecords(records: FaultRecord[]): HeatmapCell[] {
+  if (records.length === 0) return [];
+
+  const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+  const map = new Map<string, HeatmapCell & { _name: string }>();
+
+  for (const r of records) {
+    const date = new Date(r.occurredAt);
+    const month = monthNames[date.getMonth()];
+    const key = `${r.ataChapter}__${month}`;
+    const existing = map.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(key, {
+        ataChapter: r.ataChapter,
+        ataName: r.ataName,
+        month,
+        count: 1,
+        _name: r.ataName,
+      } as any);
+    }
+  }
+
+  return Array.from(map.values()).map((c) => ({
+    ataChapter: c.ataChapter,
+    ataName: c.ataName,
+    month: c.month,
+    count: c.count,
+  }));
+}
+
 export function getFilterOptions() {
   return {
     aircraftTypes,

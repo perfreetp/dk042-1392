@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { generateKnowledgeCases } from "@/utils/mock";
+import type { KnowledgeCase } from "@/types";
 import {
   BarChart,
   Bar,
@@ -13,10 +13,13 @@ import {
 } from "recharts";
 import { Trophy, TrendingUp, FileCheck } from "lucide-react";
 import { cn } from "@/utils/helpers";
+import { EmptyState } from "@/components/common/EmptyState";
 
-export function QualityScore() {
-  const cases = useMemo(() => generateKnowledgeCases(50), []);
+interface QualityScoreProps {
+  cases: KnowledgeCase[];
+}
 
+export function QualityScore({ cases }: QualityScoreProps) {
   const distribution = useMemo(() => {
     const buckets = [
       { range: "50-59", min: 50, max: 60, count: 0, label: "不合格" },
@@ -37,11 +40,15 @@ export function QualityScore() {
   }, [cases]);
 
   const avgScore = useMemo(() => {
+    if (cases.length === 0) return 0;
     const sum = cases.reduce((s, c) => s + c.qualityScore, 0);
     return Math.round(sum / cases.length);
   }, [cases]);
 
-  const sorted = useMemo(() => [...cases].sort((a, b) => b.qualityScore - a.qualityScore), [cases]);
+  const sorted = useMemo(
+    () => [...cases].sort((a, b) => b.qualityScore - a.qualityScore),
+    [cases],
+  );
   const topCases = sorted.slice(0, 5);
   const bottomCases = sorted.slice(-5).reverse();
 
@@ -61,6 +68,17 @@ export function QualityScore() {
         return "#3b82f6";
     }
   };
+
+  if (cases.length === 0) {
+    return (
+      <EmptyState
+        title="暂无评分数据"
+        description="当前筛选范围内没有知识案例"
+        iconName="Star"
+        className="animate-fade-in-up"
+      />
+    );
+  }
 
   return (
     <div className="card-base p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
@@ -158,7 +176,9 @@ export function QualityScore() {
                   >
                     {idx + 1}
                   </span>
-                  <span className="text-xs text-industrial-text truncate">{c.title.slice(0, 18)}...</span>
+                  <span className="text-xs text-industrial-text truncate">
+                    {c.title.slice(0, 18)}...
+                  </span>
                 </div>
                 <span className="text-xs font-mono font-semibold text-status-success shrink-0 ml-2">
                   {c.qualityScore}
@@ -184,7 +204,9 @@ export function QualityScore() {
                   <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-mono font-bold bg-status-danger/15 text-status-danger">
                     {5 - idx}
                   </span>
-                  <span className="text-xs text-industrial-text truncate">{c.title.slice(0, 18)}...</span>
+                  <span className="text-xs text-industrial-text truncate">
+                    {c.title.slice(0, 18)}...
+                  </span>
                 </div>
                 <span className="text-xs font-mono font-semibold text-status-danger shrink-0 ml-2">
                   {c.qualityScore}

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import type { KnowledgeCase } from "@/types";
-import { generateKnowledgeCases } from "@/utils/mock";
 import {
   ScatterChart,
   Scatter,
@@ -14,6 +13,11 @@ import {
 } from "recharts";
 import { Info, AlertTriangle, CheckCircle, TrendingDown } from "lucide-react";
 import { cn } from "@/utils/helpers";
+import { EmptyState } from "@/components/common/EmptyState";
+
+interface ReferenceMatrixProps {
+  cases: KnowledgeCase[];
+}
 
 interface HoveredCase {
   data: KnowledgeCase | null;
@@ -21,24 +25,42 @@ interface HoveredCase {
   y: number;
 }
 
-export function ReferenceMatrix() {
-  const cases = useMemo(() => generateKnowledgeCases(50), []);
+export function ReferenceMatrix({ cases }: ReferenceMatrixProps) {
   const [hovered, setHovered] = useState<HoveredCase>({ data: null, x: 0, y: 0 });
 
-  const chartData = cases.map((c) => ({
-    id: c.id,
-    title: c.title,
-    faultCode: c.faultCode,
-    x: c.referenceCount,
-    y: Math.round(c.successRate * 100),
-    z: Math.max(20, c.qualityScore / 3),
-    risk: c.referenceCount >= 30 && c.successRate < 0.65,
-    reliable: c.referenceCount >= 20 && c.successRate >= 0.85,
-  }));
+  const chartData = useMemo(
+    () =>
+      cases.map((c) => ({
+        id: c.id,
+        title: c.title,
+        faultCode: c.faultCode,
+        x: c.referenceCount,
+        y: Math.round(c.successRate * 100),
+        z: Math.max(20, c.qualityScore / 3),
+        risk: c.referenceCount >= 30 && c.successRate < 0.65,
+        reliable: c.referenceCount >= 20 && c.successRate >= 0.85,
+      })),
+    [cases],
+  );
 
-  const highRiskCount = cases.filter((c) => c.referenceCount >= 30 && c.successRate < 0.65).length;
-  const reliableCount = cases.filter((c) => c.referenceCount >= 20 && c.successRate >= 0.85).length;
+  const highRiskCount = cases.filter(
+    (c) => c.referenceCount >= 30 && c.successRate < 0.65,
+  ).length;
+  const reliableCount = cases.filter(
+    (c) => c.referenceCount >= 20 && c.successRate >= 0.85,
+  ).length;
   const lowRefCount = cases.filter((c) => c.referenceCount < 10).length;
+
+  if (cases.length === 0) {
+    return (
+      <EmptyState
+        title="暂无引用数据"
+        description="当前筛选范围内没有知识案例"
+        iconName="ScatterChart"
+        className="animate-fade-in-up"
+      />
+    );
+  }
 
   return (
     <div className="card-base p-5 animate-fade-in-up" style={{ animationDelay: "100ms" }}>

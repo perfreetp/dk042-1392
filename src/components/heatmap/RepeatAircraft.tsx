@@ -1,12 +1,27 @@
 import { useMemo } from "react";
-import type { RepeatAircraft } from "@/types";
-import { generateFaultRecords, generateRepeatAircraft } from "@/utils/mock";
+import type { RepeatAircraft, FaultRecord } from "@/types";
+import { generateRepeatAircraft } from "@/utils/mock";
 import { formatDate, cn } from "@/utils/helpers";
 import { Plane, AlertTriangle } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 
-export function RepeatAircraftList() {
-  const records = useMemo(() => generateFaultRecords(200), []);
+interface RepeatAircraftListProps {
+  records: FaultRecord[];
+}
+
+export function RepeatAircraftList({ records }: RepeatAircraftListProps) {
   const data = useMemo(() => generateRepeatAircraft(records), [records]);
+
+  if (records.length === 0) {
+    return (
+      <EmptyState
+        title="暂无重复故障数据"
+        description="当前筛选范围内没有故障记录"
+        iconName="Plane"
+        className="animate-fade-in-up"
+      />
+    );
+  }
 
   return (
     <div className="card-base p-5 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
